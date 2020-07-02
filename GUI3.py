@@ -152,6 +152,7 @@ class LeafInterface(tk.Frame):
         def callback():
             variableLeafID.set(variableCaterID.get())
             variableCaterInstar.set('4')
+            print("callback")
             return True
 
         labelProjectName = tk.Label(self,
@@ -280,6 +281,7 @@ class LeafInterface(tk.Frame):
     def getResponse(self, parent, controller, variables):
         for variable in variables:
             print(variable.get())
+        for variable in variables:
             variable.set("")
         variables[3].set("Yes")
         variables[4].set(datetime.datetime.now().strftime("%m/%d/%Y"))
