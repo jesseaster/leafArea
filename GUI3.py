@@ -128,31 +128,22 @@ class LeafInterface(tk.Frame):
         tk.Frame.__init__(self, parent)
         self.controller = controller
         self.variableProjectName = tk.StringVar()
-        variableCaterID = tk.StringVar()
-        variableLeafID = tk.StringVar()
-        variableCaterInstar = tk.StringVar()
-        variableCaterAlive = tk.StringVar()
-        variableCaterAlive.set('Yes')
-        variableDate = tk.StringVar()
-        variableDate.set(datetime.datetime.now().strftime("%m/%d/%Y"))
-        variableTime = tk.StringVar()
-        variableTime.set(datetime.datetime.now().strftime("%H:%M"))
-        variableLeafArea = tk.StringVar()
-        variableNotes = tk.StringVar()
-        
-        variables = [variableCaterID,
-                    variableLeafID,
-                    variableCaterInstar,
-                    variableCaterAlive,
-                    variableDate,
-                    variableTime,
-                    variableLeafArea,
-                    variableNotes]
+        self.variableCaterID = tk.StringVar()
+        self.variableLeafID = tk.StringVar()
+        self.variableCaterInstar = tk.StringVar()
+        self.variableCaterAlive = tk.StringVar()
+        self.variableCaterAlive.set('Yes')
+        self.variableDate = tk.StringVar()
+        self.variableDate.set(datetime.datetime.now().strftime("%m-%d-%Y"))
+        self.variableTime = tk.StringVar()
+        self.variableTime.set(datetime.datetime.now().strftime("%H.%M"))
+        self.variableLeafArea = tk.StringVar()
+        self.variableNotes = tk.StringVar()
         
         def callback():
-            variableLeafID.set(variableCaterID.get())
-            variableCaterInstar.set('4')
-            print("callback")
+            #self.variableLeafID.set(self.variableCaterID.get())
+            #self.variableCaterInstar.set('4')
+            #print("callback")
             return True
 
         labelProjectName = tk.Label(self,
@@ -165,9 +156,9 @@ class LeafInterface(tk.Frame):
                                 ).grid(row=1)
         entryCaterID = tk.Entry(self,
                                 width=50,
-                                textvariable=variableCaterID,
+                                textvariable=self.variableCaterID,
                                 validate="focusout",
-                                validatecommand=callback
+                                #validatecommand=callback
                                 ).grid(row=1, column=1)
 
         labelLeafID = tk.Label(self,
@@ -177,7 +168,7 @@ class LeafInterface(tk.Frame):
                                 ).grid(row=2)
         entryLeafID = tk.Entry(self,
                                 width=50,
-                                textvariable=variableLeafID,
+                                textvariable=self.variableLeafID,
                                 ).grid(row=2, column=1)
 
         labelCaterInstar = tk.Label(self,
@@ -187,7 +178,7 @@ class LeafInterface(tk.Frame):
                                 ).grid(row=3)
         entryCaterInstar = tk.Entry(self,
                                 width=50,
-                                textvariable=variableCaterInstar,
+                                textvariable=self.variableCaterInstar,
                                 ).grid(row=3, column=1)
 
         labelCaterAlive = tk.Label(self,
@@ -197,7 +188,7 @@ class LeafInterface(tk.Frame):
                                 ).grid(row=4)
         entryCaterAlive = tk.Entry(self,
                                 width=50,
-                                textvariable=variableCaterAlive,
+                                textvariable=self.variableCaterAlive,
                                 ).grid(row=4, column=1)
 
         labelDate = tk.Label(self,
@@ -207,7 +198,7 @@ class LeafInterface(tk.Frame):
                                 ).grid(row=5)
         labelDate2 = tk.Label(self,
                                 width=45,
-                                textvariable=variableDate,
+                                textvariable=self.variableDate,
                                 anchor='w'
                                 ).grid(row=5, column=1)
 
@@ -218,7 +209,7 @@ class LeafInterface(tk.Frame):
                                 ).grid(row=6)
         labelTime2 = tk.Label(self,
                                 width=45,
-                                textvariable=variableTime,
+                                textvariable=self.variableTime,
                                 anchor='w'
                                 ).grid(row=6, column=1)
 
@@ -229,7 +220,7 @@ class LeafInterface(tk.Frame):
                                 ).grid(row=7)
         entryLeafArea = tk.Entry(self,
                                 width=50,
-                                textvariable=variableLeafArea,
+                                textvariable=self.variableLeafArea,
                                 ).grid(row=7, column=1)
 
         labelNotes = tk.Label(self,
@@ -239,7 +230,7 @@ class LeafInterface(tk.Frame):
                                 ).grid(row=8)
         entryNotes = tk.Entry(self,
                                 width=50,
-                                textvariable=variableNotes,
+                                textvariable=self.variableNotes,
                                 ).grid(row=8, column=1)
 
         labelImage = tk.Label(self,
@@ -252,40 +243,76 @@ class LeafInterface(tk.Frame):
         image = image.resize((320, 256), Image.ANTIALIAS) ## The (250, 250) is (height, width)
         photo = ImageTk.PhotoImage(image)
         
-        labelImage2 = tk.Label(self,
+        self.labelImage2 = tk.Label(self,
                                 image=photo,
                                 bg='gray'
                                 )
-        labelImage2.image = photo
-        labelImage2.grid(row=9, column=1, padx=10, pady=10)
+        self.labelImage2.image = photo
+        self.labelImage2.grid(row=9, column=1, padx=10, pady=10)
         
         
         button1 = tk.Button(self, text="Take Picture",
-                command=lambda: self.getImage(parent, controller, variableLeafArea, labelImage2))
+                command=lambda: self.getImage(parent, controller))
         button1.grid(row=10, padx=10, pady=10)
 
         button2 = tk.Button(self, text="Submit",
-                            command=lambda: self.getResponse(parent, controller, variables))
+                            command=lambda: self.getResponse(parent, controller))
         button2.grid(row=10, column=1, padx=10, pady=10)
         
-    def getImage(self, parent, controller, variableLeafArea, labelImage2):
+    def getImage(self, parent, controller):
         cp = capturePic.CapturePic()
         image = cp.capturePic()
-        image = Image.fromarray(image)
-        #image = Image.open("leaf2.png")
-        image = image.resize((320, 256), Image.ANTIALIAS) ## The (250, 250) is (height, width)
-        photo = ImageTk.PhotoImage(image)
-        labelImage2.configure(image=photo)
-        labelImage2.image = photo
+        self.image = Image.fromarray(image)
+        imageSmall = self.image.resize((320, 256), Image.ANTIALIAS) ## The (x, y) is (width, height)
+        photo = ImageTk.PhotoImage(imageSmall)
+        self.labelImage2.configure(image=photo)
+        self.labelImage2.image = photo
+
+    def getResponse(self, parent, controller):
+        projectName = self.variableProjectName.get()[:-4]
+        imageFileName = (projectName +
+                        "\\" +
+                        self.variableDate.get() +
+                        "." +
+                        self.variableTime.get() +
+                        "CatID" +
+                        self.variableCaterID.get() +
+                        "LeafID" +
+                        self.variableLeafID.get() +
+                        ".png")
+        self.image.save(imageFileName)
+
+        variables = [self.variableCaterID.get(),
+                    self.variableLeafID.get(),
+                    self.variableCaterInstar.get(),
+                    self.variableCaterAlive.get(),
+                    self.variableDate.get(),
+                    self.variableTime.get(),
+                    self.variableLeafArea.get(),
+                    self.variableNotes.get(),
+                    imageFileName]
         
-    def getResponse(self, parent, controller, variables):
         for variable in variables:
-            print(variable.get())
-        for variable in variables:
-            variable.set("")
-        variables[3].set("Yes")
-        variables[4].set(datetime.datetime.now().strftime("%m/%d/%Y"))
-        variables[5].set(datetime.datetime.now().strftime("%H:%M"))
+            print(variable)
+
+        ld = loadProject.LoadProject()
+        ld.saveData(self.variableProjectName.get(), variables)
+
+        # Reset variables and image
+        self.variableCaterID.set("")
+        self.variableLeafID.set("")
+        self.variableCaterInstar.set("")
+        self.variableCaterAlive.set("Yes")
+        self.variableDate.set(datetime.datetime.now().strftime("%m-%d-%Y"))
+        self.variableTime.set(datetime.datetime.now().strftime("%H.%M"))
+        self.variableLeafArea.set("")
+        self.variableNotes.set("")
+        self.image = Image.open("leaf2.png")
+        imageSmall = self.image.resize((320, 256), Image.ANTIALIAS) ## The (250, 250) is (height, width)
+        photo = ImageTk.PhotoImage(imageSmall)
+        self.labelImage2.configure(image=photo)
+        self.labelImage2.image = photo
+
 
 app = App()
 app.mainloop()

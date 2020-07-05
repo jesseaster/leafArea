@@ -3,7 +3,6 @@
 import csv
 import glob
 import os
-import time
 
 class LoadProject:
     def getProjects(self):
@@ -18,9 +17,20 @@ class LoadProject:
             spamreader = csv.reader(csvfile, delimiter=",", quotechar='\'')
             for row in spamreader:
                 print(', '.join(row))
-        path = os.getcwd()
-        path = path + "\\" + projectName
-        return path
+
+    def saveData(self, csvfilename, variables):
+        with open(csvfilename, 'a', newline='') as csvfile:
+            spamwriter = csv.writer(csvfile, delimiter=",",
+                            quotechar='\'', quoting=csv.QUOTE_MINIMAL)
+            spamwriter.writerow([variables[0],
+                                variables[1],
+                                variables[2],
+                                variables[3],
+                                variables[4],
+                                variables[5],
+                                variables[6],
+                                variables[7],
+                                variables[8]])
 
     def newProject(self, projectName):
         csvfilename = projectName + '.csv'
@@ -43,10 +53,6 @@ class LoadProject:
                                  'Leaf Area',
                                  'Notes'
                                  ,'Image'])
-        txtfiles = []
-        for file in glob.glob("*.csv"):
-            txtfiles.append(file)
-
 
 if __name__ == '__main__':
     lp = LoadProject()
@@ -54,5 +60,8 @@ if __name__ == '__main__':
 
     txtfiles = lp.getProjects()
     if len(txtfiles) > 0:
-        file = txtfiles[0]
-        lp.loadProject(file)
+        csvfilename = txtfiles[0]
+        variables = ["1","2","3","Yes","07-05-2020","18.51","7","8","beans\\07-05-2020.18.51Cat1Leaf2.png"]
+        lp.loadProject(csvfilename)
+        lp.saveData(csvfilename, variables)
+        lp.loadProject(csvfilename)

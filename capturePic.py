@@ -1,8 +1,9 @@
 import cv2
 import numpy as np
+import os
 
 class CapturePic:
-    def capturePic(cdf):
+    def capturePic(cap):
         camera = cv2.VideoCapture(1, cv2.CAP_DSHOW)
         #print(camera.get(cv2.CAP_PROP_FPS))
         #camera.set(cv2.CAP_PROP_FPS, 1)
@@ -30,33 +31,16 @@ class CapturePic:
         mask = cv2.inRange(image, lower, upper)
         output = cv2.bitwise_and(image, image, mask=mask)
 
-#        cv2.imshow("Image", output)
-#        cv2.waitKey(0)
+        #cv2.imshow("Image", output)
+        #cv2.waitKey(0)
 
         ret,thresh = cv2.threshold(mask, 40, 255, 0)
 
         contours, hierarchy = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
         
-        # Image directory 
-        #directory = r'C:\Users\Easter\leafArea'
-        path = os.getcwd()
-        path = path + "\\" + projectName
-  
+        im_rgb = cv2.cvtColor(output, cv2.COLOR_BGR2RGB)
 
-      
-        # Change the current directory  
-        # to specified directory  
-        #os.chdir(directory) 
-
-          
-        # Filename 
-        filename = 'savedImage2.png'
-          
-        # Using cv2.imwrite() method 
-        # Saving the image 
-        cv2.imwrite(filename, image) 
-
-        return output
+        return im_rgb
 
 
         if len(contours) != 0:
