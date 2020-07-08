@@ -261,7 +261,8 @@ class LeafInterface(tk.Frame):
         
     def getImage(self, parent, controller):
         cp = capturePic.CapturePic()
-        image = cp.capturePic()
+        image, leafAreaCentimeters = cp.capturePic()
+        self.variableLeafArea.set(leafAreaCentimeters)
         self.image = Image.fromarray(image)
         imageSmall = self.image.resize((320, 256), Image.ANTIALIAS) ## The (x, y) is (width, height)
         photo = ImageTk.PhotoImage(imageSmall)
