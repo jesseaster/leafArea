@@ -8,7 +8,15 @@ class CapturePic:
         self.bedWidthcm = 60 # 60 cm
         self.bedHeightcm = 60 # 60 cm
         self.bedAreacm = 3600 # 3600 sq cm
-        self.bedCropcm = 2 # Crop inward 2 cm on all sides of the bed
+        self.bedAreaPixels = 917278 # sq pixels
+
+        self.conversionPixelsToCentimeters = math.sqrt(self.bedAreacm / self.bedAreaPixels)
+        self.conversionCentimetersToPixels = 1 / self.conversionPixelsToCentimeters
+
+        self.conversionSquarePixelsToSquareCentimeters = self.bedAreacm / self.bedAreaPixels
+        self.conversionSquareCentimetersToSquarePixels = 1 / self.conversionPixelsToCentimeters
+
+        self.bedCropcm = 4 # Crop inward 2 cm on all sides of the bed
 
     def capturePic(self):
         camera = cv2.VideoCapture(1, cv2.CAP_DSHOW)
@@ -16,7 +24,7 @@ class CapturePic:
         # -4       80 ms
         # -5       40 ms
         # -6       20 ms
-        camera.set(cv2.CAP_PROP_EXPOSURE,-5)
+        camera.set(cv2.CAP_PROP_EXPOSURE,-6)
         camera.set(cv2.CAP_PROP_FRAME_WIDTH, 1280) #width
         camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 1024) #height
         return_value, image = camera.read()
@@ -78,37 +86,29 @@ class CapturePic:
             cropped = cv2.warpPerspective(thresh, M, (width, height))
             croppedNot = cv2.bitwise_not(cropped)
 
-            conversionPixelsToCentimeters = math.sqrt(self.bedAreacm / areaPixels)
-            conversionCentimetersToPixels = 1 / conversionPixelsToCentimeters
-
-            conversionSquarePixelsToSquareCentimeters = self.bedAreacm / areaPixels
-            conversionSquareCentimetersToSquarePixels = 1 / conversionPixelsToCentimeters
-
-            cropBorderPixels = int(self.bedCropcm * conversionCentimetersToPixels)
-            print(conversionPixelsToCentimeters)
-            print(height)
-            print(cropBorderPixels)
+            cropBorderPixels = int(self.bedCropcm * self.conversionCentimetersToPixels)
             cropBorder = croppedNot[cropBorderPixels:height - cropBorderPixels * 2,
                            cropBorderPixels:width - cropBorderPixels * 2]
             leafAreaPixels = cv2.countNonZero(cropBorder)
 
-            leafAreaCentimeters = leafAreaPixels * conversionSquarePixelsToSquareCentimeters
+            leafAreaCentimeters = leafAreaPixels * self.conversionSquarePixelsToSquareCentimeters
             print(leafAreaCentimeters)
 
         # show the images
         #cv2.imshow("Result", np.hstack([image, output]))
         #cv2.imshow("gray", gray)
-        cv2.imwrite("Aimage.png", image)
-        cv2.imwrite("Aunmodified.png", imageOriginal)
-        cv2.imwrite("Athreshhold.png", thresh)
-        cv2.imwrite("Acropped.png", cropped)
-        cv2.imwrite("AcropBorder.png", cropBorder)
+        #cv2.imwrite("Aimage.png", image)
+        #cv2.imwrite("Aunmodified.png", imageOriginal)
+        #cv2.imwrite("Athreshhold.png", thresh)
+        #cv2.imwrite("Acropped.png", cropped)
+        #cv2.imwrite("AcropBorder.png", cropBorder)
         #cv2.imshow("adaptive",thresh)
         #cv2.imshow("image", image)
 
         cv2.waitKey(0)
         im_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        return im_rgb, leafAreaCentimeters
+        original_rgb = cv2.cvtColor(imageOriginal, cv2.COLOR_BGR2RGB)
+        return im_rgb, original_rgb, cropBorder, leafAreaCentimeters
 
     # Use this function to find your camera's max resolution
     # https://en.wikipedia.org/wiki/List_of_common_resolutions

@@ -240,7 +240,7 @@ class LeafInterface(tk.Frame):
                                 ).grid(row=9)
 
         image = Image.open("leaf.png")
-        image = image.resize((320, 256), Image.ANTIALIAS) ## The (250, 250) is (height, width)
+        image = image.resize((320, 256), Image.ANTIALIAS) ## The (x, y) is (width, height)
         photo = ImageTk.PhotoImage(image)
         
         self.labelImage2 = tk.Label(self,
@@ -249,7 +249,17 @@ class LeafInterface(tk.Frame):
                                 )
         self.labelImage2.image = photo
         self.labelImage2.grid(row=9, column=1, padx=10, pady=10)
-        
+
+        image2 = Image.open("leaf.png")
+        image2 = image2.resize((256, 256), Image.ANTIALIAS) ## The (x, y) is (width, height)
+        photo2 = ImageTk.PhotoImage(image2)
+
+        self.labelImage3 = tk.Label(self,
+                                image=photo2,
+                                bg='gray'
+                                )
+        self.labelImage3.image = photo2
+        self.labelImage3.grid(row=9, column=2, padx=10, pady=10)
         
         button1 = tk.Button(self, text="Take Picture",
                 command=lambda: self.getImage(parent, controller))
@@ -261,13 +271,22 @@ class LeafInterface(tk.Frame):
         
     def getImage(self, parent, controller):
         cp = capturePic.CapturePic()
-        image, leafAreaCentimeters = cp.capturePic()
+        image, originalImage, croppedImage, leafAreaCentimeters = cp.capturePic()
         self.variableLeafArea.set(leafAreaCentimeters)
+
+        self.imageOriginal = Image.fromarray(originalImage)
+
         self.image = Image.fromarray(image)
         imageSmall = self.image.resize((320, 256), Image.ANTIALIAS) ## The (x, y) is (width, height)
         photo = ImageTk.PhotoImage(imageSmall)
         self.labelImage2.configure(image=photo)
         self.labelImage2.image = photo
+
+        self.imageCropped = Image.fromarray(croppedImage)
+        imageSmall2 = self.imageCropped.resize((256, 256), Image.ANTIALIAS) ## The (x, y) is (width, height)
+        photo2 = ImageTk.PhotoImage(imageSmall2)
+        self.labelImage3.configure(image=photo2)
+        self.labelImage3.image = photo2
 
     def getResponse(self, parent, controller):
         projectName = self.variableProjectName.get()[:-4]
@@ -282,6 +301,30 @@ class LeafInterface(tk.Frame):
                         self.variableLeafID.get() +
                         ".png")
         self.image.save(imageFileName)
+
+        imageOriginalFileName = (projectName +
+                        "\\" +
+                        self.variableDate.get() +
+                        "." +
+                        self.variableTime.get() +
+                        "CatID" +
+                        self.variableCaterID.get() +
+                        "LeafID" +
+                        self.variableLeafID.get() +
+                        "Original.png")
+        self.imageOriginal.save(imageOriginalFileName)
+
+        imageCroppedFileName = (projectName +
+                        "\\" +
+                        self.variableDate.get() +
+                        "." +
+                        self.variableTime.get() +
+                        "CatID" +
+                        self.variableCaterID.get() +
+                        "LeafID" +
+                        self.variableLeafID.get() +
+                        "Cropped.png")
+        self.imageCropped.save(imageCroppedFileName)
 
         variables = [self.variableCaterID.get(),
                     self.variableLeafID.get(),
