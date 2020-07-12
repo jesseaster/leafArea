@@ -93,14 +93,15 @@ class LoadExistingProject(tk.Frame):
         self.controller = controller
         label = tk.Label(self, text="Choose Project", font=LARGE_FONT)
         label.pack(pady=10,padx=10)
-        
+
         lp = loadProject.LoadProject()
-        
+
         OPTIONS = lp.getProjects()
 
-
         self.variableProjectName = tk.StringVar(self)
-        self.variableProjectName.set(OPTIONS[0]) # default value
+
+        if len(OPTIONS) > 0:
+            self.variableProjectName.set(OPTIONS[0]) # default value
 
         self.option = tk.OptionMenu(self, self.variableProjectName, *OPTIONS)
         self.option.pack()
