@@ -141,7 +141,8 @@ class LeafInterface(tk.Frame):
         self.variableTime = tk.StringVar()
         hours = int(datetime.datetime.now().strftime("%H"))
         minutes = int(datetime.datetime.now().strftime("%M"))/60.0
-        timeNow = hours + minutes
+        minutesRounded = round(minutes, 3) # round to 3 decimal places
+        timeNow = hours + minutesRounded
         self.variableTime.set(timeNow)
         self.variableLeafArea = tk.StringVar()
         self.variableNotes = tk.StringVar()
@@ -356,7 +357,8 @@ class LeafInterface(tk.Frame):
         self.variableDate.set(datetime.datetime.now().strftime("%m-%d-%Y"))
         hours = int(datetime.datetime.now().strftime("%H"))
         minutes = int(datetime.datetime.now().strftime("%M"))/60.0
-        timeNow = hours + minutes
+        minutesRounded = round(minutes, 3) # round to 3 decimal places
+        timeNow = hours + minutesRounded
         self.variableTime.set(timeNow)
         self.variableLeafArea.set("")
         self.variableNotes.set("")
