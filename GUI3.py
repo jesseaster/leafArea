@@ -362,11 +362,13 @@ class LeafInterface(tk.Frame):
         self.variableTime.set(timeNow)
         self.variableLeafArea.set("")
         self.variableNotes.set("")
-        self.image = Image.open("leaf2.png")
+        self.image = Image.open("leaf.png")
         imageSmall = self.image.resize((320, 256), Image.ANTIALIAS) ## The (250, 250) is (height, width)
         photo = ImageTk.PhotoImage(imageSmall)
         self.labelImage2.configure(image=photo)
         self.labelImage2.image = photo
+        self.labelImage3.configure(image=photo)
+        self.labelImage3.image = photo
 
 
 app = App()
