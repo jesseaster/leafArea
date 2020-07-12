@@ -103,7 +103,9 @@ class LoadExistingProject(tk.Frame):
         if len(OPTIONS) > 0:
             self.variableProjectName.set(OPTIONS[0]) # default value
 
-        self.option = tk.OptionMenu(self, self.variableProjectName, *OPTIONS)
+        self.option = tk.OptionMenu(self,
+                                    self.variableProjectName,
+                                    *OPTIONS if OPTIONS else 0)
         self.option.pack()
 
         button1 = tk.Button(self, text="Load Project",
