@@ -105,7 +105,7 @@ class LoadExistingProject(tk.Frame):
 
         self.option = tk.OptionMenu(self,
                                     self.variableProjectName,
-                                    *OPTIONS if OPTIONS else 0)
+                                    *OPTIONS if OPTIONS else [0])
         self.option.pack()
 
         button1 = tk.Button(self, text="Load Project",
@@ -139,7 +139,10 @@ class LeafInterface(tk.Frame):
         self.variableDate = tk.StringVar()
         self.variableDate.set(datetime.datetime.now().strftime("%m-%d-%Y"))
         self.variableTime = tk.StringVar()
-        self.variableTime.set(datetime.datetime.now().strftime("%H.%M"))
+        hours = int(datetime.datetime.now().strftime("%H"))
+        minutes = int(datetime.datetime.now().strftime("%M"))/60.0
+        timeNow = hours + minutes
+        self.variableTime.set(timeNow)
         self.variableLeafArea = tk.StringVar()
         self.variableNotes = tk.StringVar()
         
@@ -351,7 +354,10 @@ class LeafInterface(tk.Frame):
         self.variableCaterInstar.set("")
         self.variableCaterAlive.set("Yes")
         self.variableDate.set(datetime.datetime.now().strftime("%m-%d-%Y"))
-        self.variableTime.set(datetime.datetime.now().strftime("%H.%M"))
+        hours = int(datetime.datetime.now().strftime("%H"))
+        minutes = int(datetime.datetime.now().strftime("%M"))/60.0
+        timeNow = hours + minutes
+        self.variableTime.set(timeNow)
         self.variableLeafArea.set("")
         self.variableNotes.set("")
         self.image = Image.open("leaf2.png")
