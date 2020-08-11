@@ -30,7 +30,8 @@ class LoadProject:
                                 variables[5],
                                 variables[6],
                                 variables[7],
-                                variables[8]])
+                                variables[8],
+                                variables[9]])
 
     def newProject(self, projectName):
         csvfilename = projectName + '.csv'
@@ -51,8 +52,10 @@ class LoadProject:
                                  'Date',
                                  'Time',
                                  'Leaf Area',
-                                 'Notes'
-                                 ,'Image'])
+                                 'Notes',
+                                 'Image',
+                                 'Calibrated Image'
+                                 ])
 
 if __name__ == '__main__':
     lp = LoadProject()
@@ -61,7 +64,7 @@ if __name__ == '__main__':
     txtfiles = lp.getProjects()
     if len(txtfiles) > 0:
         csvfilename = txtfiles[0]
-        variables = ["1","2","3","Yes","07-05-2020","18.51","7","8","beans\\07-05-2020.18.51Cat1Leaf2.png"]
+        variables = ["1","2","3","Yes","07-05-2020","18.51","7","8","Project1\\07-05-2020.18.51Cat1Leaf2.png", "Project1\\07-05-2020.18.51Calibrated.png"]
         lp.loadProject(csvfilename)
         lp.saveData(csvfilename, variables)
         lp.loadProject(csvfilename)

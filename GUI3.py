@@ -328,11 +328,16 @@ class LeafInterface(tk.Frame):
         self.displayImages(self.calibratedImage, self.calibratedImageCropped)
         self.buttonTakePicture.config(state="normal")
         im = Image.fromarray(self.calibratedImage)
+        imCropped = Image.fromarray(self.calibratedImageCropped)
         projectName = self.variableProjectName.get()[:-4]
-        imageCalibratedFileName = (projectName + "\\" + self.variableDate.get() +
-                                "." + self.variableTime.get() + "CatID" +
+        self.imageCalibratedFileName = (projectName + "\\" + self.variableDate.get() +
+                                "." + self.variableTime.get() +
                                 "Calibrated.png")
-        im.save(imageCalibratedFileName)
+        self.imageCalibratedCroppedFileName = (projectName + "\\" + self.variableDate.get() +
+                                "." + self.variableTime.get() +
+                                "CalibratedCropped.png")
+        im.save(self.imageCalibratedFileName)
+        imCropped.save(self.imageCalibratedCroppedFileName)
         # Convert back to GBR so when it is passed into capturePic it will be
         # the correct image space
         self.calibratedImage = cv2.cvtColor(self.calibratedImage, cv2.COLOR_BGR2RGB)
@@ -403,7 +408,9 @@ class LeafInterface(tk.Frame):
             self.variableDate.get(),
             self.variableTime.get(),
             self.variableLeafArea.get(),
-            self.variableNotes.get(), imageFileName
+            self.variableNotes.get(),
+            imageFileName,
+            self.imageCalibratedCroppedFileName
         ]
 
         for variable in variables:
