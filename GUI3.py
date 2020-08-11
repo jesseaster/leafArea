@@ -1,6 +1,7 @@
 # The code for changing pages was derived from: http://stackoverflow.com/questions/7546050/switch-between-two-frames-in-tkinter
 # License: http://creativecommons.org/licenses/by-sa/3.0/
 
+import cv2
 import tkinter as tk
 import loadProject
 import capturePic
@@ -299,20 +300,62 @@ class LeafInterface(tk.Frame):
         self.labelImage3.image = photo2
         self.labelImage3.grid(row=9, column=2, padx=10, pady=10)
 
-        button1 = tk.Button(self,
-                            text="Take Picture",
-                            command=lambda: self.getImage(parent, controller))
-        button1.grid(row=10, padx=10, pady=10)
+        buttonCalibrate = tk.Button(self,
+                            bg='#54FA9B', #greenish button
+                            text="Calibrate",
+                            command=lambda: self.calibrate(parent, controller))
+        buttonCalibrate.grid(row=10, padx=10, pady=10)
 
-        button2 = tk.Button(
-            self,
-            text="Submit",
-            command=lambda: self.getResponse(parent, controller))
-        button2.grid(row=10, column=1, padx=10, pady=10)
+        self.buttonTakePicture = tk.Button(self,
+                            bg='#9999ff', #purpleish button
+                            text="Take Picture",
+                            state='disabled',
+                            command=lambda: self.getImage(parent, controller))
+        self.buttonTakePicture.grid(row=10, column=1, padx=10, pady=10)
+
+        self.buttonSubmit = tk.Button(self,
+                        text="Submit",
+                        state='disabled',
+                        command=lambda: self.getResponse(parent, controller))
+        self.buttonSubmit.grid(row=10, column=2, padx=10, pady=10)
+
+    def calibrate(self, parent, controller):
+        cp = capturePic.CapturePic()
+        self.calibratedImage, self.calibratedImageCropped = cp.getCalibratedImage()
+        
+        
+        
+        self.displayImages(self.calibratedImage, self.calibratedImageCropped)
+        self.buttonTakePicture.config(state="normal")
+        im = Image.fromarray(self.calibratedImage)
+        projectName = self.variableProjectName.get()[:-4]
+        imageCalibratedFileName = (projectName + "\\" + self.variableDate.get() +
+                                "." + self.variableTime.get() + "CatID" +
+                                "Calibrated.png")
+        im.save(imageCalibratedFileName)
+        # Convert back to GBR so when it is passed into capturePic it will be
+        # the correct image space
+        self.calibratedImage = cv2.cvtColor(self.calibratedImage, cv2.COLOR_BGR2RGB)
+        self.calibratedImageCropped = cv2.cvtColor(self.calibratedImageCropped, cv2.COLOR_BGR2RGB)
+
+    def displayImages(self, image, imageCropped):
+        image = Image.fromarray(image)
+        imageSmall = image.resize(
+            (320, 256), Image.ANTIALIAS)  ## The (x, y) is (width, height)
+        photo = ImageTk.PhotoImage(imageSmall)
+        self.labelImage2.configure(image=photo)
+        self.labelImage2.image = photo
+
+        imageCropped = Image.fromarray(imageCropped)
+        imageSmall2 = imageCropped.resize(
+            (256, 256), Image.ANTIALIAS)  ## The (x, y) is (width, height)
+        photo2 = ImageTk.PhotoImage(imageSmall2)
+        self.labelImage3.configure(image=photo2)
+        self.labelImage3.image = photo2
 
     def getImage(self, parent, controller):
         cp = capturePic.CapturePic()
-        image, originalImage, croppedImage, leafAreaCentimeters = cp.capturePic()
+        image, originalImage, subtractedImg, leafAreaCentimeters = cp.getLeafImageAndArea(self.calibratedImageCropped)
         self.variableLeafArea.set(leafAreaCentimeters)
 
         self.imageOriginal = Image.fromarray(originalImage)
@@ -324,12 +367,13 @@ class LeafInterface(tk.Frame):
         self.labelImage2.configure(image=photo)
         self.labelImage2.image = photo
 
-        self.imageCropped = Image.fromarray(croppedImage)
+        self.imageCropped = Image.fromarray(subtractedImg)
         imageSmall2 = self.imageCropped.resize(
             (256, 256), Image.ANTIALIAS)  ## The (x, y) is (width, height)
         photo2 = ImageTk.PhotoImage(imageSmall2)
         self.labelImage3.configure(image=photo2)
         self.labelImage3.image = photo2
+        self.buttonSubmit.config(state="normal")
 
     def getResponse(self, parent, controller):
         projectName = self.variableProjectName.get()[:-4]
@@ -389,6 +433,7 @@ class LeafInterface(tk.Frame):
         self.labelImage2.image = photo
         self.labelImage3.configure(image=photo)
         self.labelImage3.image = photo
+        self.buttonSubmit.config(state="disabled")
 
 
 app = App()

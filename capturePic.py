@@ -2,6 +2,8 @@ import cv2
 import numpy as np
 import os
 import math
+import glob
+from matplotlib import pyplot as plt
 
 
 class CapturePic:
@@ -9,111 +11,183 @@ class CapturePic:
         self.bedWidthcm = 60  # 60 cm
         self.bedHeightcm = 60  # 60 cm
         self.bedAreacm = 3600  # 3600 sq cm
-        self.bedAreaPixels = 917278  # sq pixels
 
-        self.conversionPixelsToCentimeters = math.sqrt(self.bedAreacm /
-                                                       self.bedAreaPixels)
-        self.conversionCentimetersToPixels = 1 / self.conversionPixelsToCentimeters
+        self.imageWidth = 1280
+        self.imageHeight = 1024
+
+        self.bedAreaPixels = 917278  # sq pixels of the bed
 
         self.conversionSquarePixelsToSquareCentimeters = self.bedAreacm / self.bedAreaPixels
-        self.conversionSquareCentimetersToSquarePixels = 1 / self.conversionPixelsToCentimeters
 
-        self.bedCropcm = 4  # Crop inward 2 cm on all sides of the bed
-
-    def capturePic(self):
-        camera = cv2.VideoCapture(1, cv2.CAP_DSHOW)
         # CAP_PROP_EXPOSURE Exposure Time
         # -4       80 ms
         # -5       40 ms
         # -6       20 ms
-        camera.set(cv2.CAP_PROP_EXPOSURE, -6)
-        camera.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)  #width
-        camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 1024)  #height
+        self.exposureTime = -6
+
+    def getCalibratedImage(self):
+        img = self.capturePic()
+        rotated_img = self.rotatePic(img)
+        crop_img = self.cropPic(rotated_img)
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        crop_img = cv2.cvtColor(crop_img, cv2.COLOR_BGR2RGB)
+        return img, crop_img
+
+    def getLeafImageAndArea(self, calibratedImage, img=None):
+        if np.all(img) is None:
+            img = self.capturePic()
+        rotated_img = self.rotatePic(img)
+        crop_img = self.cropPic(rotated_img)
+        subtracted_img = self.subtractPics(calibratedImage, crop_img)
+        green = self.filterGreen(crop_img, subtracted_img)
+        leafAreaCentimeters = self.calculateSquareCentimeters(green)
+        crop_img_rgb = cv2.cvtColor(crop_img, cv2.COLOR_BGR2RGB)
+        original_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        return crop_img_rgb, original_rgb, green, leafAreaCentimeters
+
+    def capturePic(self):
+        camera = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+        camera.set(cv2.CAP_PROP_EXPOSURE, self.exposureTime)
+        camera.set(cv2.CAP_PROP_FRAME_WIDTH, self.imageWidth)
+        camera.set(cv2.CAP_PROP_FRAME_HEIGHT, self.imageHeight)
         return_value, image = camera.read()
         camera.release()
         cv2.destroyAllWindows()
+        return image
 
-        imageOriginal = image.copy()
+    def rotatePic(self, image):
+        degreesToRotate = 1
+        rows, columns, colors = image.shape
+        M = cv2.getRotationMatrix2D((columns/2,rows/2),degreesToRotate,1)
+        dst = cv2.warpAffine(image,M,(columns,rows))
+        return dst
 
-        # Convert BGR to gray
-        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    def cropPic(self, image):
+        y = 30
+        h = 950
+        x = 138
+        w = 945
+        crop_img = image[y:y+h, x:x+w]
+        return crop_img
 
-        # Otsu's thresholding after Gaussian filtering
-        blur = cv2.GaussianBlur(gray, (5, 5), 0)
-        #ret3,thresh = cv2.threshold(blur,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
-        ret3, thresh = cv2.threshold(blur, 170, 255, cv2.THRESH_BINARY)
+    def subtractPics(self, calibrated, img):
+        cv2.destroyAllWindows()
+        fgbg = cv2.bgsegm.createBackgroundSubtractorMOG()
+        fgmask = fgbg.apply(calibrated)
+        fgmask = fgbg.apply(img)
+        return fgmask
 
-        contours, hierarchy = cv2.findContours(thresh, cv2.RETR_EXTERNAL,
-                                               cv2.CHAIN_APPROX_NONE)
+    def filterGreen(self, img, mask):
+        res = cv2.bitwise_and(img,img, mask = mask)
 
-        # OTSU
-        if len(contours) != 0:
-            # draw in blue the contours that were found
-            #cv2.drawContours(image, contours, -1, 255, 3)
+        ## convert to hsv
+        hsv = cv2.cvtColor(res, cv2.COLOR_BGR2HSV)
 
-            # find the biggest countour (c) by the area
-            c = max(contours, key=cv2.contourArea)
-            #x,y,w,h = cv2.boundingRect(c)
+        ## mask of green (36,25,25) ~ (86, 255,255)
+        # mask = cv2.inRange(hsv, (36, 25, 25), (86, 255,255))
+        mask = cv2.inRange(hsv, (25, 25, 25), (86, 255,255))
 
-            # draw the biggest contour (c) in green
-            #cv2.rectangle(image,(x,y),(x+w,y+h),(0,255,0),2)
+        ## slice the green
+        imask = mask>0
+        green = np.zeros_like(res, np.uint8)
+        green[imask] = res[imask]
+        ret,thresh1 = cv2.threshold(green,0,255,cv2.THRESH_BINARY)
+        green = cv2.cvtColor(thresh1, cv2.COLOR_BGR2GRAY)
+        return green
 
-            rect = cv2.minAreaRect(c)
-            rect = cv2.minAreaRect(c)
-            # the order of the box points:
-            # bottom left, top left, top right, bottom right
-            box = cv2.boxPoints(rect)
-            box = np.int0(box)
+    def calculateSquareCentimeters(self, img):
+        leafAreaPixels = cv2.countNonZero(img)
+        leafAreaCentimeters = leafAreaPixels * self.conversionSquarePixelsToSquareCentimeters
+        print(leafAreaCentimeters)
+        return leafAreaCentimeters
 
-            # get width and height of the detected rectangle
-            width = int(rect[1][0])
-            height = int(rect[1][1])
+    def loadPics(self):
+        filename = 'C:/Users/Easter/Downloads/8-3-20-20200804T194018Z-001/8-3-20/MsCcHSFeed/08-03-2020.15.783CatID019LeafID1172Original.png'
+        calibrated_img = cv2.imread(filename,cv2.IMREAD_COLOR)
+        calibrated_img = self.rotatePic(calibrated_img)
+        calibrated_img = self.cropPic(calibrated_img)
+        cropped_images = glob.glob('C:/Users/Easter/Downloads/8-3-20-20200804T194018Z-001/8-3-20/MsCcHSFeed/*Cropped.png')
+        original_images = glob.glob('C:/Users/Easter/Downloads/8-3-20-20200804T194018Z-001/8-3-20/MsCcHSFeed/*Original.png')
+        for i in range(len(original_images)):
+            print(original_images[i])
+            print(i)
+            img = cv2.imread(original_images[i],cv2.IMREAD_COLOR)
+            old_cropped = cv2.imread(cropped_images[i],cv2.IMREAD_COLOR)
+            crop_img_rgb, original_rgb, green, leafAreaCentimeters = self.getLeafImageAndArea(calibrated_img, img)
+            pics = [crop_img_rgb, green, old_cropped]
+            titles = ['Cropped', 'Green', 'Old']
+            self.displayPics(pics, titles)
 
-            # calculate scan bed area in pixels
-            areaPixels = width * height
-            print(areaPixels)
+    def loadPics2(self):
+        filename = 'C:/Users/Easter/Downloads/8-3-20-20200804T194018Z-001/8-3-20/MsCcHSFeed/08-03-2020.15.783CatID019LeafID1172Original.png'
+        calibrated_img = cv2.imread(filename,cv2.IMREAD_COLOR)
+        calibrated_img = self.rotatePic(calibrated_img)
+        calibrated_img = self.cropPic(calibrated_img)
+        cropped_images = glob.glob('C:/Users/Easter/Downloads/8-3-20-20200804T194018Z-001/8-3-20/MsCcHSFeed/*Cropped.png')
+        original_images = glob.glob('C:/Users/Easter/Downloads/8-3-20-20200804T194018Z-001/8-3-20/MsCcHSFeed/*Original.png')
+        for i in range(0,len(original_images),5):
+            print(original_images[i])
+            print(i)
+            img0 = cv2.imread(original_images[i+0],cv2.IMREAD_COLOR)
+            img1 = cv2.imread(original_images[i+1],cv2.IMREAD_COLOR)
+            img2 = cv2.imread(original_images[i+2],cv2.IMREAD_COLOR)
+            img3 = cv2.imread(original_images[i+3],cv2.IMREAD_COLOR)
+            img4 = cv2.imread(original_images[i+4],cv2.IMREAD_COLOR)
 
-            cv2.drawContours(image, [box], 0, (0, 0, 255), 2)
+            crop_img_rgb0, original_rgb, green0, leafAreaCentimeters0 = self.getLeafImageAndArea(calibrated_img, img0)
+            crop_img_rgb1, original_rgb, green1, leafAreaCentimeters1 = self.getLeafImageAndArea(calibrated_img, img1)
+            crop_img_rgb2, original_rgb, green2, leafAreaCentimeters2 = self.getLeafImageAndArea(calibrated_img, img2)
+            crop_img_rgb3, original_rgb, green3, leafAreaCentimeters3 = self.getLeafImageAndArea(calibrated_img, img3)
+            crop_img_rgb4, original_rgb, green4, leafAreaCentimeters4 = self.getLeafImageAndArea(calibrated_img, img4)
 
-            src_pts = box.astype("float32")
-            # coordinate of the points in box points after the rectangle has been
-            # straightened
-            dst_pts = np.array([[0, height - 1], [0, 0], [width - 1, 0],
-                                [width - 1, height - 1]],
-                               dtype="float32")
-            # the perspective transformation matrix
-            M = cv2.getPerspectiveTransform(src_pts, dst_pts)
+            leafAreaCentimeters0 = round(leafAreaCentimeters0, 2)
+            leafAreaCentimeters1 = round(leafAreaCentimeters1, 2)
+            leafAreaCentimeters2 = round(leafAreaCentimeters2, 2)
+            leafAreaCentimeters3 = round(leafAreaCentimeters3, 2)
+            leafAreaCentimeters4 = round(leafAreaCentimeters4, 2)
 
-            # directly warp the rotated rectangle to get the straightened rectangle
-            cropped = cv2.warpPerspective(thresh, M, (width, height))
-            croppedNot = cv2.bitwise_not(cropped)
+            cimg0 = cv2.imread(cropped_images[i+0],cv2.IMREAD_COLOR)
+            cimg1 = cv2.imread(cropped_images[i+1],cv2.IMREAD_COLOR)
+            cimg2 = cv2.imread(cropped_images[i+2],cv2.IMREAD_COLOR)
+            cimg3 = cv2.imread(cropped_images[i+3],cv2.IMREAD_COLOR)
+            cimg4 = cv2.imread(cropped_images[i+4],cv2.IMREAD_COLOR)
 
-            cropBorderPixels = int(self.bedCropcm *
-                                   self.conversionCentimetersToPixels)
-            cropBorder = croppedNot[cropBorderPixels:height -
-                                    cropBorderPixels * 2,
-                                    cropBorderPixels:width -
-                                    cropBorderPixels * 2]
-            leafAreaPixels = cv2.countNonZero(cropBorder)
+            cimg0 = cv2.cvtColor(cimg0, cv2.COLOR_BGR2GRAY)
+            cimg1 = cv2.cvtColor(cimg1, cv2.COLOR_BGR2GRAY)
+            cimg2 = cv2.cvtColor(cimg2, cv2.COLOR_BGR2GRAY)
+            cimg3 = cv2.cvtColor(cimg3, cv2.COLOR_BGR2GRAY)
+            cimg4 = cv2.cvtColor(cimg4, cv2.COLOR_BGR2GRAY)
 
-            leafAreaCentimeters = leafAreaPixels * self.conversionSquarePixelsToSquareCentimeters
-            print(leafAreaCentimeters)
+            leafAreaCentimetersOld0 = round(self.calculateSquareCentimeters(cimg0),2)
+            leafAreaCentimetersOld1 = round(self.calculateSquareCentimeters(cimg1),2)
+            leafAreaCentimetersOld2 = round(self.calculateSquareCentimeters(cimg2),2)
+            leafAreaCentimetersOld3 = round(self.calculateSquareCentimeters(cimg3),2)
+            leafAreaCentimetersOld4 = round(self.calculateSquareCentimeters(cimg4),2)
 
-        # show the images
-        #cv2.imshow("Result", np.hstack([image, output]))
-        #cv2.imshow("gray", gray)
-        #cv2.imwrite("Aimage.png", image)
-        #cv2.imwrite("Aunmodified.png", imageOriginal)
-        #cv2.imwrite("Athreshhold.png", thresh)
-        #cv2.imwrite("Acropped.png", cropped)
-        #cv2.imwrite("AcropBorder.png", cropBorder)
-        #cv2.imshow("adaptive",thresh)
-        #cv2.imshow("image", image)
+            pics = [crop_img_rgb0, crop_img_rgb1, crop_img_rgb2, crop_img_rgb3, crop_img_rgb4]
+            titles = [str(i), str(i+1), str(i+2), str(i+3), str(i+4)]
+            pics2 = [green0, green1, green2, green3, green4]
+            titles2 = [leafAreaCentimeters0, leafAreaCentimeters1, leafAreaCentimeters2, leafAreaCentimeters3, leafAreaCentimeters4]
+            pics3 = [cimg0, cimg1, cimg2, cimg3, cimg4]
+            titles3 = [leafAreaCentimetersOld0, leafAreaCentimetersOld1, leafAreaCentimetersOld2, leafAreaCentimetersOld3, leafAreaCentimetersOld4]
 
-        cv2.waitKey(0)
-        im_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        original_rgb = cv2.cvtColor(imageOriginal, cv2.COLOR_BGR2RGB)
-        return im_rgb, original_rgb, cropBorder, leafAreaCentimeters
+            self.displayPics2(pics, titles, pics2, titles2, pics3, titles3)
+
+    def displayPics(self, pics, titles):
+        for i in range(len(pics)):
+            plt.subplot(1,len(pics),i + 1),plt.imshow(pics[i],'gray')
+            plt.title(titles[i]), plt.xticks([]), plt.yticks([])
+        plt.show()
+
+    def displayPics2(self, pics, titles, pics2, titles2, pics3, titles3):
+        for i in range(len(pics)):
+            plt.subplot(3,len(pics),i + 1),plt.imshow(pics[i],'gray')
+            plt.title(titles[i]), plt.xticks([]), plt.yticks([])
+            plt.subplot(3,len(pics2),i + 1 + len(pics2)),plt.imshow(pics2[i],'gray')
+            plt.title(titles2[i]), plt.xticks([]), plt.yticks([])
+            plt.subplot(3,len(pics3),i + 1 + len(pics2) + len(pics3)),plt.imshow(pics3[i],'gray')
+            plt.title(titles3[i]), plt.xticks([]), plt.yticks([])
+        plt.show()
 
     # Use this function to find your camera's max resolution
     # https://en.wikipedia.org/wiki/List_of_common_resolutions
@@ -135,7 +209,8 @@ class CapturePic:
 
 if __name__ == '__main__':
     cp = CapturePic()
-    image = cp.capturePic()
+    cp.loadPics2()
+    #image = cp.capturePic()
 
     #cp.set_res(640,	480)   # VGA
     #cp.set_res(800,	600)   # SVGA
